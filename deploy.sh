@@ -36,13 +36,16 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
+# Build image first so indexers run on the latest code
+docker compose build backend
+
 # Re-index vault before bringing backend up
 # (idempotent — skips unchanged files)
 docker compose run --rm backend python indexer.py
 docker compose run --rm backend python notion_indexer.py
 
-# Bring up (or rebuild if image changed)
-docker compose up -d --build
+# Bring up (or restart if already running)
+docker compose up -d
 
 echo "==> Done. Kairos is live at https://100.104.67.55"
 REMOTE

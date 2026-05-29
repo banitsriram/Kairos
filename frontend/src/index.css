@@ -608,3 +608,138 @@ h1, h2, h3 { margin: 0; }
   border-radius: var(--radius);
   background: rgba(248,113,113,0.05);
 }
+
+/* ================================================================
+   NUDGE BANNERS
+   ================================================================ */
+
+.nudge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nudge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.nudge-icon { font-size: 14px; flex-shrink: 0; }
+.nudge-text { flex: 1; }
+
+.nudge-dismiss {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.nudge-dismiss:hover { color: var(--text); }
+
+/* ================================================================
+   BRIEFING CARD
+   ================================================================ */
+
+.briefing-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.briefing-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.briefing-greeting {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.5;
+  font-style: italic;
+  flex: 1;
+}
+
+.briefing-streak {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 40px;
+}
+
+.streak-flame {
+  font-size: 22px;
+  line-height: 1;
+  filter: grayscale(0.3);
+}
+.streak-flame--gold {
+  filter: none;
+  filter: drop-shadow(0 0 6px rgba(251,191,36,0.5));
+}
+
+.streak-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.streak-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.briefing-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.briefing-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-sub);
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.briefing-pill--warn {
+  color: #f87171;
+  border-color: rgba(248,113,113,0.3);
+}
+
+.briefing-pill-icon { font-size: 12px; }
+
+/* ================================================================
+   ON THIS DAY
+   ================================================================ */
+
+.today-grid--3col {
+  grid-template-columns: 1fr 1fr 1fr !important;
+}
+
+.on-this-day-card .card-title {
+  font-style: italic;
+  color: var(--text-sub);
+}

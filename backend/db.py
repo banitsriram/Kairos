@@ -42,6 +42,12 @@ def init_db() -> None:
             tags,
             tokenize = 'porter unicode61'
         );
+
+        CREATE TABLE IF NOT EXISTS activity_log (
+            date     TEXT PRIMARY KEY,
+            opened   INTEGER DEFAULT 0,
+            captured INTEGER DEFAULT 0
+        );
     """)
     conn.commit()
     conn.close()

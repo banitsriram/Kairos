@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchToday, type TodayData, type Task, type ScheduleEvent } from '../lib/api'
+import { fetchToday, getBriefing, type TodayData, type Task, type ScheduleEvent, type OnThisDayNote } from '../lib/api'
 
 const PRIORITY_COLOR: Record<string, string> = {
   High:   'var(--accent)',
@@ -76,12 +76,32 @@ function EventCard({ event }: { event: ScheduleEvent }) {
   )
 }
 
+function OnThisDayCard({ note }: { note: OnThisDayNote }) {
+  const folder = note.path.split('/')[0]
+  return (
+    <div className="card on-this-day-card">
+      <div className="card-left" style={{ background: 'var(--text-dim)' }} />
+      <div className="card-body">
+        <span className="card-title">{note.title}</span>
+        <div className="card-meta">
+          {note.year && <span className="badge badge--muted">{note.year}</span>}
+          <span className="badge badge--muted">{folder}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function TodayPanel() {
-  const [data, setData]   = useState<TodayData | null>(null)
-  const [error, setError] = useState(false)
+  const [data, setData]         = useState<TodayData | null>(null)
+  const [onThisDay, setOnThisDay] = useState<OnThisDayNote[]>([])
+  const [error, setError]       = useState(false)
 
   useEffect(() => {
     fetchToday().then(setData).catch(() => setError(true))
+    getBriefing()
+      .then(b => setOnThisDay(b.on_this_day))
+      .catch(() => {})
   }, [])
 
   if (error) return (
@@ -97,7 +117,7 @@ export function TodayPanel() {
   )
 
   return (
-    <div className="today-grid">
+    <div className={`today-grid ${onThisDay.length > 0 ? 'today-grid--3col' : ''}`}>
       {/* ── Schedule ── */}
       <section className="today-section">
         <header className="section-header">
@@ -133,6 +153,17 @@ export function TodayPanel() {
           </>
         )}
       </section>
+
+      {/* ── On this day ── */}
+      {onThisDay.length > 0 && (
+        <section className="today-section">
+          <header className="section-header">
+            <span className="section-title">On this day</span>
+            <span className="section-count">{onThisDay.length}</span>
+          </header>
+          {onThisDay.map(n => <OnThisDayCard key={n.path} note={n} />)}
+        </section>
+      )}
     </div>
   )
 }

@@ -9,10 +9,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend source
 COPY backend/ .
 
-# Non-root user — containers shouldn't run as root
-RUN useradd -m kairos && chown -R kairos /app
-USER kairos
-
 EXPOSE 8000
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

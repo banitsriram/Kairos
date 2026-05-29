@@ -1,0 +1,28 @@
+sass_level: 2  # 1–5 (returned in /briefing for frontend use)
+
+context:
+  packed_threshold: 3   # schedule events >= this → "packed day" bucket
+  neglected_days: 7     # days without vault activity → "project neglected" bucket
+
+greetings:
+  packed_day:
+    - "You have {n_classes} classes today. Godspeed."
+    - "{n_classes} classes and {overdue} overdue. You love chaos."
+    - "Packed schedule. Remember to eat."
+  empty_day:
+    - "Light day. Don't waste it."
+    - "Only {n_classes} things scheduled. No excuses."
+    - "You've got space to think. Use it."
+  project_neglected:
+    - "{project} misses you. It's been {days} days."
+    - "You haven't touched {project} in {days} days. Just saying."
+    - "{project} is gathering dust. {days} days."
+  default:
+    - "Here's your day."
+    - "Let's get it."
+    - "Make it count."
+
+motivation:
+  - "Small steps compound."
+  - "You showed up. That's already something."
+  - "Progress, not perfection."
