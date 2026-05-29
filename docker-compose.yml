@@ -24,8 +24,8 @@ services:
     restart: unless-stopped
     # Bind only to the Tailscale interface — never exposed to the public internet
     ports:
-      - "100.104.67.55:80:80"
-      - "100.104.67.55:443:443"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./frontend/dist:/srv/frontend:ro
