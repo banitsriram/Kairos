@@ -3,7 +3,7 @@
 # tls internal = Caddy's own CA issues a cert (trusted by browsers that have
 # accepted the CA, or use `caddy trust` to add it to your system keychain).
 
-amrard-latitude-3410.taile244a7.ts.net {
+<your-tailscale-hostname> {
     tls internal
 
     # API requests → FastAPI backend (strip /api prefix before forwarding)

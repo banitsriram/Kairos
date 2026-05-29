@@ -6,7 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-VAULT_PATH="${VAULT_PATH:-/home/banit/vault}"
+VAULT_PATH="${VAULT_PATH:-/home/<your-user>/vault}"
 DB_PATH="${DB_PATH:-/data/brain.db}"
 
 cd "$VAULT_PATH"

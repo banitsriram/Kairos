@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# deploy.sh — build and ship Kairos to the home lab server (amrad).
+# deploy.sh — build and ship Kairos to the home lab server.
 # Run from the project root: ./deploy.sh
+#
+# Set SERVER and REMOTE_DIR to match your setup:
+#   SERVER     — SSH alias from ~/.ssh/config (e.g. "myserver")
+#   REMOTE_DIR — absolute path on the server (e.g. "/home/<user>/kairos")
 set -euo pipefail
 
-SERVER="amrad"
-REMOTE_DIR="/home/abanit/kairos"
+SERVER="<your-server-alias>"
+REMOTE_DIR="/home/<your-user>/kairos"
 
 echo "==> Building frontend..."
 cd frontend
@@ -27,7 +31,7 @@ rsync -avz --progress \
 echo "==> Deploying on server..."
 ssh "$SERVER" bash <<'REMOTE'
 set -euo pipefail
-cd /home/abanit/kairos
+cd /home/<your-user>/kairos
 
 # First deploy: create .env from example if it doesn't exist yet
 if [ ! -f .env ]; then
@@ -47,7 +51,7 @@ docker compose run --rm backend python notion_indexer.py
 # Bring up (or restart if already running)
 docker compose up -d
 
-echo "==> Done. Kairos is live at https://100.104.67.55"
+echo "==> Done. Kairos is live."
 REMOTE
 
 echo "==> Deploy complete."
