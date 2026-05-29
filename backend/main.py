@@ -13,6 +13,12 @@ from pydantic import BaseModel
 
 load_dotenv()
 
+from briefing import build_briefing, load_config  # noqa: E402
+
+_PERSONALITY_CONFIG = os.getenv(
+    "PERSONALITY_CONFIG", str(Path(__file__).parent / "personality.yaml")
+)
+
 from db import get_connection, init_db  # noqa: E402
 from notion import get_schedule, get_tasks, get_today  # noqa: E402
 
@@ -100,6 +106,36 @@ def today():
         raise HTTPException(status_code=502, detail=f"Notion error: {e}")
 
 
+@app.post("/heartbeat", status_code=200)
+def heartbeat():
+    """Record that the app was opened today. Fire-and-forget — never errors."""
+    try:
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        conn = get_connection()
+        conn.execute(
+            """
+            INSERT INTO activity_log (date, opened, captured) VALUES (?, 1, 0)
+            ON CONFLICT(date) DO UPDATE SET opened = opened + 1
+            """,
+            (today_str,),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+    return {"ok": True}
+
+
+@app.get("/briefing")
+def briefing():
+    config = load_config(_PERSONALITY_CONFIG)
+    conn = get_connection()
+    try:
+        return build_briefing(conn, config)
+    finally:
+        conn.close()
+
+
 class CaptureBody(BaseModel):
     text: str
 
@@ -135,5 +171,20 @@ def capture(body: CaptureBody):
 
     content = f"# {title}\n\n#voice-capture\n\n{text}\n"
     filename.write_text(content, encoding="utf-8")
+
+    try:
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        cap_conn = get_connection()
+        cap_conn.execute(
+            """
+            INSERT INTO activity_log (date, opened, captured) VALUES (?, 0, 1)
+            ON CONFLICT(date) DO UPDATE SET captured = captured + 1
+            """,
+            (today_str,),
+        )
+        cap_conn.commit()
+        cap_conn.close()
+    except Exception:
+        pass
 
     return {"path": str(filename.relative_to(vault_path)), "title": title}

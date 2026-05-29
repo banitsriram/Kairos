@@ -422,7 +422,8 @@ def client(tmp_path, monkeypatch):
     importlib.reload(_main)
 
     from fastapi.testclient import TestClient
-    return TestClient(_main.app)
+    with TestClient(_main.app) as c:
+        yield c
 
 
 def test_heartbeat_returns_ok(client):
@@ -444,22 +445,15 @@ def test_briefing_returns_expected_shape(client):
 
 
 def test_capture_increments_streak_bonus(client, tmp_path, monkeypatch):
-    client.post("/heartbeat")
-
     vault = tmp_path / "vault"
     vault.mkdir()
     monkeypatch.setenv("VAULT_PATH", str(vault))
 
-    import importlib
-    import main as _main
-    importlib.reload(_main)
-    from fastapi.testclient import TestClient
-    fresh_client = TestClient(_main.app)
-
-    r = fresh_client.post("/capture", json={"text": "Test capture note."})
+    client.post("/heartbeat")
+    r = client.post("/capture", json={"text": "Test capture note."})
     assert r.status_code == 201
 
     with patch("briefing.get_schedule", return_value=[]), \
          patch("briefing.get_tasks", return_value=[]):
-        r2 = fresh_client.get("/briefing")
+        r2 = client.get("/briefing")
     assert r2.json()["streak"]["bonus"] is True
