@@ -1,0 +1,46 @@
+services:
+  backend:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # SQLite DB — persisted across container restarts
+      - db_data:/data
+      # Obsidian vault — read-only mount from the host
+      - ${VAULT_PATH}:/vault:ro
+    environment:
+      DB_PATH: /data/brain.db
+      VAULT_PATH: /vault
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    # Bind only to the Tailscale interface — never exposed to the public internet
+    ports:
+      - "100.104.67.55:80:80"
+      - "100.104.67.55:443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./frontend/dist:/srv/frontend:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge

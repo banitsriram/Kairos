@@ -1,0 +1,32 @@
+# === SECRETS — never commit ===
+.env
+
+# === DATA — lives in Docker volumes, never in the repo ===
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# === VAULT — your real Obsidian notes, kept outside the repo ===
+vault/
+
+# === VOICE CAPTURES ===
+captures/
+
+# === LOGS ===
+logs/*.log
+
+# === PYTHON ===
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+.superpowers/

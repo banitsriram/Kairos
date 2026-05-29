@@ -1,0 +1,22 @@
+# Kairos — Caddy reverse proxy
+# Listens on the Tailscale IP only. Never reachable from the public internet.
+# tls internal = Caddy's own CA issues a cert (trusted by browsers that have
+# accepted the CA, or use `caddy trust` to add it to your system keychain).
+
+100.104.67.55 {
+    tls internal
+
+    # API requests → FastAPI backend (strip /api prefix before forwarding)
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy backend:8000
+    }
+
+    # Everything else → React frontend static files
+    # try_files makes client-side routing work (React Router, etc.)
+    handle {
+        root * /srv/frontend
+        file_server
+        try_files {path} /index.html
+    }
+}
