@@ -43,12 +43,19 @@ export interface BriefingContext {
   neglected_project: { name: string; days: number } | null
 }
 
+export interface Nudge {
+  id: string
+  icon: string
+  text: string
+}
+
 export interface Briefing {
   greeting: string
   sass_level: number
   context: BriefingContext
   streak: { count: number; bonus: boolean }
   on_this_day: OnThisDayNote[]
+  nudges: Nudge[]
 }
 
 const BASE = '/api'

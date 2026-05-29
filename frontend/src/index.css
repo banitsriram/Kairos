@@ -610,6 +610,41 @@ h1, h2, h3 { margin: 0; }
 }
 
 /* ================================================================
+   NUDGE BANNERS
+   ================================================================ */
+
+.nudge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nudge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.nudge-icon { font-size: 14px; flex-shrink: 0; }
+.nudge-text { flex: 1; }
+
+.nudge-dismiss {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.nudge-dismiss:hover { color: var(--text); }
+
+/* ================================================================
    BRIEFING CARD
    ================================================================ */
 

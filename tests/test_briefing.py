@@ -385,6 +385,34 @@ def test_gather_context_notion_failure_returns_defaults():
 # Task 8 — build_briefing assembler
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Phase 6 — nudge generation
+# ---------------------------------------------------------------------------
+
+def test_nudge_overdue():
+    from briefing import generate_nudges, FALLBACK_CONFIG
+    ctx = {"overdue_count": 2, "n_classes": 1, "neglected_project": None}
+    nudges = generate_nudges(ctx, FALLBACK_CONFIG)
+    assert any(n["id"] == "overdue" and "2 tasks" in n["text"] for n in nudges)
+
+def test_nudge_packed_day():
+    from briefing import generate_nudges, FALLBACK_CONFIG
+    ctx = {"overdue_count": 0, "n_classes": 4, "neglected_project": None}
+    nudges = generate_nudges(ctx, FALLBACK_CONFIG)
+    assert any(n["id"] == "packed" for n in nudges)
+
+def test_nudge_neglected():
+    from briefing import generate_nudges, FALLBACK_CONFIG
+    ctx = {"overdue_count": 0, "n_classes": 0, "neglected_project": {"name": "cs", "days": 9}}
+    nudges = generate_nudges(ctx, FALLBACK_CONFIG)
+    assert any(n["id"] == "neglected-cs" and "9 days" in n["text"] for n in nudges)
+
+def test_nudge_empty_when_nothing_to_flag():
+    from briefing import generate_nudges, FALLBACK_CONFIG
+    ctx = {"overdue_count": 0, "n_classes": 1, "neglected_project": None}
+    nudges = generate_nudges(ctx, FALLBACK_CONFIG)
+    assert nudges == []
+
 def test_build_briefing_shape():
     from briefing import build_briefing, FALLBACK_CONFIG
 

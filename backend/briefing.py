@@ -211,6 +211,42 @@ def gather_context(conn: sqlite3.Connection, config: dict) -> dict:
     }
 
 
+def generate_nudges(ctx: dict, config: dict) -> list:
+    """
+    Generate actionable nudge alerts from context. Rules are pure logic — no AI.
+    Each nudge: { id, icon, text }
+    """
+    nudges = []
+    packed_threshold = config.get("context", {}).get(
+        "packed_threshold", FALLBACK_CONFIG["context"]["packed_threshold"]
+    )
+
+    if ctx["overdue_count"] > 0:
+        n = ctx["overdue_count"]
+        nudges.append({
+            "id": "overdue",
+            "icon": "⚠",
+            "text": f"{n} task{'s' if n != 1 else ''} overdue",
+        })
+
+    if ctx["n_classes"] >= packed_threshold:
+        nudges.append({
+            "id": "packed",
+            "icon": "📅",
+            "text": f"{ctx['n_classes']} classes today",
+        })
+
+    if ctx["neglected_project"]:
+        proj = ctx["neglected_project"]
+        nudges.append({
+            "id": f"neglected-{proj['name']}",
+            "icon": "✦",
+            "text": f"{proj['name']} hasn't been touched in {proj['days']} days",
+        })
+
+    return nudges
+
+
 def build_briefing(conn: sqlite3.Connection, config: dict) -> dict:
     """Assemble the full /briefing response."""
     ctx = gather_context(conn, config)
@@ -223,6 +259,7 @@ def build_briefing(conn: sqlite3.Connection, config: dict) -> dict:
     streak = compute_streak(conn)
     today = date.today()
     on_this_day = get_on_this_day(conn, today.strftime("%m-%d"), today.year)
+    nudges = generate_nudges(ctx, config)
 
     return {
         "greeting": greeting,
@@ -230,4 +267,5 @@ def build_briefing(conn: sqlite3.Connection, config: dict) -> dict:
         "context": ctx,
         "streak": streak,
         "on_this_day": on_this_day,
+        "nudges": nudges,
     }

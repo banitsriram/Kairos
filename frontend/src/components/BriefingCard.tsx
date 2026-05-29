@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getBriefing, type Briefing } from '../lib/api'
+import { NudgeBanner } from './NudgeBanner'
 
 function StreakBadge({ count, bonus }: { count: number; bonus: boolean }) {
   return (
@@ -20,9 +21,11 @@ export function BriefingCard() {
 
   if (!data) return null
 
-  const { greeting, context, streak, on_this_day } = data
+  const { greeting, context, streak, on_this_day, nudges } = data
 
   return (
+    <>
+    {nudges.length > 0 && <NudgeBanner nudges={nudges} />}
     <div className="briefing-card">
       <div className="briefing-main">
         <p className="briefing-greeting">"{greeting}"</p>
@@ -50,5 +53,6 @@ export function BriefingCard() {
         )}
       </div>
     </div>
+    </>
   )
 }
