@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
+import { BriefingCard } from './components/BriefingCard'
 import { CommandPalette } from './components/CommandPalette'
 import { SearchBar } from './components/SearchBar'
 import { SearchResults } from './components/SearchResults'
 import { TodayPanel } from './components/TodayPanel'
-import { search, type SearchResult } from './lib/api'
+import { search, postHeartbeat, type SearchResult } from './lib/api'
 import { useDebounce } from './lib/useDebounce'
 import { applyTheme, getPeriodLabel, type Period } from './lib/theme'
 
@@ -43,6 +44,8 @@ export default function App() {
     const id = setInterval(apply, 60_000)
     return () => clearInterval(id)
   }, [])
+
+  useEffect(() => { postHeartbeat() }, [])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -108,6 +111,9 @@ export default function App() {
             </div>
           )}
         </section>
+
+        {/* ── Briefing ── */}
+        {!inSearch && <BriefingCard />}
 
         {/* ── Content ── */}
         {inSearch ? (

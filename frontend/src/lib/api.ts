@@ -30,6 +30,27 @@ export interface TodayData {
   neglected: Task | null
 }
 
+export interface OnThisDayNote {
+  path: string
+  title: string
+  year: number | null
+}
+
+export interface BriefingContext {
+  n_classes: number
+  next_event: { name: string; date: string; type: string | null } | null
+  overdue_count: number
+  neglected_project: { name: string; days: number } | null
+}
+
+export interface Briefing {
+  greeting: string
+  sass_level: number
+  context: BriefingContext
+  streak: { count: number; bonus: boolean }
+  on_this_day: OnThisDayNote[]
+}
+
 const BASE = '/api'
 
 async function get<T>(path: string): Promise<T> {
@@ -44,6 +65,18 @@ export async function search(q: string): Promise<{ results: SearchResult[] }> {
 
 export async function fetchToday(): Promise<TodayData> {
   return get('/today')
+}
+
+export async function getBriefing(): Promise<Briefing> {
+  return get('/briefing')
+}
+
+export async function postHeartbeat(): Promise<void> {
+  try {
+    await fetch(BASE + '/heartbeat', { method: 'POST' })
+  } catch {
+    // fire-and-forget — never surface errors
+  }
 }
 
 export async function capture(text: string): Promise<{ path: string; title: string }> {
