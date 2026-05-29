@@ -14,11 +14,12 @@ occasionally funny, quietly motivating, and looks beautiful.
 
 ## Stack
 - Backend: FastAPI (Python 3.9)
-- Search: SQLite FTS5 (porter + unicode61 tokenizer), clean upgrade path to embeddings later
-- Sync: cron — git-pull vault, then run indexer; separate Notion indexer
+- Search: SQLite FTS5 (porter + unicode61 tokenizer), upgrade path to embeddings later
+- Vault sync: Syncthing (Mac → server, send-only / receive-only)
+- Cron: re-indexes vault + Notion every 15 min (no git pull — Syncthing handles sync)
 - Frontend: React 19 + TypeScript + Vite
-- Reverse proxy + HTTPS: Caddy
-- Deploy: Docker Compose (`docker compose up`)
+- Reverse proxy + HTTPS: Caddy (`tls internal`, Tailscale MagicDNS hostname)
+- Deploy: Docker Compose (`./deploy.sh` from Mac)
 - Remote access: Tailscale — NEVER expose ports to the public internet
 
 ## Home lab server
@@ -26,7 +27,7 @@ occasionally funny, quietly motivating, and looks beautiful.
 | Field        | Value                          |
 |--------------|--------------------------------|
 | SSH alias    | `<your-server-alias>`          |
-| Tailscale IP | `<your-tailscale-ip>`          |
+| Tailscale hostname | `<your-tailscale-hostname>` |
 | User         | `<your-server-user>`           |
 | OS           | Linux                          |
 | Tailscale    | Connected                      |
@@ -38,176 +39,190 @@ Host <your-server-alias>
     User <your-server-user>
 ```
 
-**Deployment status:** Phase 4 config is written and ready — waiting for server
-to come online. All Docker/Caddy files are in the repo root.
+## Deployment
 
-**First-time deploy checklist (run once when server is online):**
+**Status:** Live. All 6 phases deployed and running.
+
+**URL:** `https://<your-tailscale-hostname>` (Tailscale devices only)
+
+**Deploy command (run from Mac project root):**
+```bash
+./deploy.sh
+```
+Builds frontend → rsyncs to server → `docker compose build` → indexes vault+Notion → `docker compose up -d`.
+
+**First-time setup checklist:**
 1. `ssh <your-server-alias>` — confirm Docker is installed (`docker --version`)
-2. On server: `mkdir -p ~/kairos && cp .env.example ~/kairos/.env` then fill in real values
-3. On server: confirm vault path (`ls ~/vault` or wherever it lives)
-4. On Mac: `./deploy.sh` — builds frontend, rsyncs to server, runs docker compose up
-5. On server: set up cron — `crontab -e` and add the line from `scripts/server_cron.sh`
-6. On Mac: `caddy trust` on each device to trust Caddy's internal CA (for HTTPS)
-7. Open `https://<your-tailscale-ip>` from any Tailscale device
+2. On server: `mkdir -p ~/kairos ~/vault`
+3. On server: `cp .env.example ~/kairos/.env` — fill in real values
+4. Install Syncthing on server (`~/bin/syncthing`) and Mac (`brew install syncthing`)
+5. Configure Syncthing: Mac vault → `~/vault` on server (send-only / receive-only)
+6. Add cron: `*/15 * * * * /home/<your-user>/kairos/scripts/server_cron.sh >> .../cron.log 2>&1`
+7. On Mac: `./deploy.sh`
+8. Open `https://<your-tailscale-hostname>` in browser — accept cert warning once
 
-**Current dev setup (Mac only):**
-- Backend: `localhost:8000`
-- Frontend: `localhost:5173` (Vite dev server, proxies `/api` → `:8000`)
-- Vault: `tests/sample_vault` (real vault is on the server)
+**Dev setup (Mac only):**
+```bash
+# Terminal 1 — backend
+cd backend && source ../.venv/bin/activate
+uvicorn main:app --reload --port 8000
+
+# Terminal 2 — frontend
+cd frontend && npm run dev
+# open http://localhost:5173
+```
+Vault: `tests/sample_vault` (real vault is on the server)
+
+**Tests:**
+```bash
+.venv/bin/pytest tests/ -v
+```
 
 ## Project layout
 
 ```
 kairos/
 ├── backend/
-│   ├── main.py          # FastAPI app — /health, /search, /tasks, /schedule, /today
-│   ├── db.py            # SQLite connection + schema init (notes_meta + notes_fts)
-│   ├── indexer.py       # Walks VAULT_PATH, upserts changed .md notes into FTS5
-│   ├── notion.py        # Notion client — get_tasks(), get_schedule()
-│   └── requirements.txt # fastapi, uvicorn[standard], python-dotenv, requests
+│   ├── main.py            # FastAPI app — all routes
+│   ├── db.py              # SQLite connection + schema (notes_meta, notes_fts, activity_log)
+│   ├── briefing.py        # Phase 5/6 logic: greeting, streak, on-this-day, nudges
+│   ├── personality.yaml   # Editable personality config — greeting lines, sass level
+│   ├── indexer.py         # Walks VAULT_PATH, upserts changed .md notes into FTS5
+│   ├── notion.py          # Notion client — get_tasks(), get_schedule(), get_today()
+│   ├── notion_indexer.py  # Pulls Notion tasks + schedule into FTS5 index
+│   └── requirements.txt
+├── frontend/src/
+│   ├── App.tsx            # Root — topbar, hero, BriefingCard, TodayPanel
+│   ├── index.css          # All styles via CSS custom properties; no CSS-in-JS
+│   ├── components/
+│   │   ├── BriefingCard.tsx   # Personality greeting + streak + stat pills
+│   │   ├── NudgeBanner.tsx    # Dismissible rule-based alert banners
+│   │   ├── TodayPanel.tsx     # 3-col grid: schedule | tasks | on-this-day
+│   │   ├── CommandPalette.tsx # Cmd+K overlay: search + voice capture
+│   │   └── SearchBar.tsx / SearchResults.tsx
+│   └── lib/
+│       ├── api.ts         # Typed fetch wrappers for all endpoints
+│       ├── theme.ts       # Time-of-day CSS variable injection
+│       └── useVoice.ts / useDebounce.ts / speech.d.ts
 ├── scripts/
-│   └── sync_vault.sh    # git-pull vault → run indexer.py — add to cron (*/15 * *)
+│   ├── server_cron.sh     # Re-indexes vault + Notion (runs on server via cron)
+│   └── sync_vault.sh      # Legacy — Syncthing replaced git-pull approach
 ├── tests/
-│   └── sample_vault/    # Local test notes: daily, cs, projects, reading
-├── data/
-│   └── brain.db         # SQLite DB — gitignored, created at runtime
-├── .env                 # Local config — gitignored, never commit
-├── .env.example         # Template — safe to commit, no real values
-└── CLAUDE.md            # This file
+│   ├── test_briefing.py   # 29 unit + integration tests
+│   └── sample_vault/      # Local test notes for dev
+├── data/brain.db          # SQLite DB — gitignored, created at runtime
+├── .env                   # Local config — gitignored, never commit
+├── .env.example           # Template — safe to commit, no real values
+├── Caddyfile              # Caddy config — tls internal, /api/* proxy
+├── Dockerfile             # python:3.9-slim, installs requirements, runs uvicorn
+├── docker-compose.yml     # backend + caddy services, db_data volume
+└── deploy.sh              # One-command deploy from Mac
 ```
 
 ## Environment variables
 
-| Variable            | Dev default            | Description                          |
-|---------------------|------------------------|--------------------------------------|
-| `VAULT_PATH`        | `./tests/sample_vault` | Path to Obsidian vault               |
-| `DB_PATH`           | `./data/brain.db`      | SQLite database path                 |
-| `PORT`              | `8000`                 | FastAPI port                         |
-| `NOTION_TOKEN`      | —                      | Notion integration token             |
-| `NOTION_TASKS_DB`   | —                      | Notion Tasks database ID             |
-| `NOTION_SCHEDULE_DB`| —                      | Notion Schedule database ID          |
+| Variable              | Dev default               | Description                          |
+|-----------------------|---------------------------|--------------------------------------|
+| `VAULT_PATH`          | `./tests/sample_vault`    | Path to Obsidian vault               |
+| `DB_PATH`             | `./data/brain.db`         | SQLite database path                 |
+| `PORT`                | `8000`                    | FastAPI port                         |
+| `NOTION_TOKEN`        | —                         | Notion integration token             |
+| `NOTION_TASKS_DB`     | —                         | Notion Tasks database ID             |
+| `NOTION_SCHEDULE_DB`  | —                         | Notion Schedule database ID          |
+| `PERSONALITY_CONFIG`  | `./backend/personality.yaml` | Path to personality config        |
 
 ## Notion databases
 
-Kairos page ID: `36e522ea-e156-80c6-964d-d0f36fc7d6c4`
+See `.env.example` for where to put the IDs. Database schemas:
 
-**Tasks DB** (`36e522ea-e156-81fd-ad79-cd3b160ddf9e`):
-- Name (title), Status (select: Not started / In progress / Done),
-  Priority (select: High / Medium / Low), Due Date (date)
+**Tasks DB:** Name (title), Status (select: Not started / In progress / Done),
+Priority (select: High / Medium / Low), Due Date (date)
 
-**Schedule DB** (`36e522ea-e156-8126-93ec-c02fcc905161`):
-- Name (title), Date (date), Type (select: Class / Study / Personal / Meeting),
-  Notes (rich_text)
+**Schedule DB:** Name (title), Date (date), Type (select: Class / Study / Personal / Meeting),
+Notes (rich_text)
 
 ## SQLite schema
 
-`notes_meta(path PK, mtime, indexed_at)` — tracks what's up to date.
-`notes_fts(path, title, body, tags)` — FTS5 virtual table. Source column: `path`
-prefix distinguishes Obsidian notes (`vault/…`) from Notion entries (`notion/…`).
-Indexer does DELETE + INSERT on change (FTS5 doesn't support UPDATE).
-BM25 score returned negated so higher = more relevant.
-
-## Running locally
-
-```bash
-cd backend
-source ../.venv/bin/activate
-uvicorn main:app --reload --port 8000
+```sql
+notes_meta(path PK, mtime REAL, indexed_at REAL)
+notes_fts(path, title, body, tags)          -- FTS5, porter tokenizer
+activity_log(date PK, opened INT, captured INT)  -- Phase 5 streak tracking
 ```
 
-Index sample vault first:
-```bash
-python indexer.py
+- `notes_meta` — tracks what's up to date (mtime = Unix epoch float)
+- `notes_fts` — FTS5 virtual table. Vault paths: no prefix (e.g. `cs/note.md`).
+  Notion paths: `notion/tasks/<id>`, `notion/schedule/<id>`.
+  Indexer does DELETE + INSERT (FTS5 doesn't support UPDATE). BM25 score negated.
+- `activity_log` — one row per day. `opened` incremented by `/heartbeat`,
+  `captured` incremented by `/capture`. Used to compute streaks.
+
+## API endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Liveness check |
+| GET | `/search?q=` | FTS5 search across vault + Notion |
+| GET | `/tasks` | Notion tasks (optional `?status=` filter) |
+| GET | `/schedule` | Notion schedule (optional `?date=` filter) |
+| GET | `/today` | Today's schedule + top tasks + neglected task |
+| GET | `/briefing` | Personality greeting, streak, on-this-day, nudges |
+| POST | `/heartbeat` | Record app open (fire-and-forget, never errors) |
+| POST | `/capture` | Save voice/quick note to vault/captures/ |
+
+## Phase 5 — personality layer
+
+`backend/briefing.py` owns all logic:
+- **Config loader** — reads `personality.yaml`, falls back to hardcoded defaults
+- **Template renderer** — fills `{n_classes}`, `{overdue}`, `{project}`, `{days}` slots
+- **Greeting picker** — 4 buckets in priority order: `project_neglected` → `packed_day` → `empty_day` → `default`
+- **Streak calculator** — counts consecutive days with `opened > 0`; bonus flag if `captured > 0` today
+- **On-this-day** — vault notes whose filename matches today's MM-DD from a prior year
+- **Context gatherer** — calls Notion APIs + queries `notes_meta` for neglected projects; degrades gracefully if Notion is down
+
+`backend/personality.yaml` — editable config (committed with defaults):
+```yaml
+sass_level: 2          # 1–5
+context:
+  packed_threshold: 3  # events >= this = packed day
+  neglected_days: 7    # days without vault activity = neglected
+greetings:
+  packed_day: [...]
+  empty_day: [...]
+  project_neglected: [...]
+  default: [...]
 ```
 
-Test:
-```bash
-curl "http://localhost:8000/search?q=TLB"
-curl "http://localhost:8000/tasks"
-curl "http://localhost:8000/schedule?date=2026-05-29"
-curl "http://localhost:8000/today"
+## Phase 6 — nudges
+
+Rules computed in `generate_nudges()` in `briefing.py`. Returned in `/briefing` response as `nudges: [{id, icon, text}]`.
+
+Rules:
+- `overdue` — N tasks past due date
+- `packed` — N classes today (>= packed_threshold)
+- `neglected-<project>` — vault project not touched in 7+ days
+
+Frontend `NudgeBanner.tsx` — dismissible per-session (sessionStorage). Reappears on next page load by design.
+
+## Frontend layout
+
+```
+topbar: logo | clock | ⌘K
+hero: greeting h1 | date | search bar | hint pills
+NudgeBanner (if any nudges active)
+BriefingCard: italic greeting | streak flame | stat pills (next event / overdue / on-this-day)
+TodayPanel: schedule | tasks | on-this-day (3rd col appears when notes exist)
 ```
 
-## Security requirements (repo is PUBLIC — critical)
-- `.gitignore` excludes: vault, data/, *.db, .env, captures/
-- All secrets in `.env`; `.env.example` has blank placeholders only
-- A real secret must NEVER touch git history even once
-- gitleaks pre-commit hook as safety net
-- Tailscale-only access; no public ports; Caddy for HTTPS on private net
-- Audit for data leakage at the end of every phase
+Time-of-day theming: dawn (5–8), morning (8–12), afternoon (12–17), evening (17–21), night (21–5).
+CSS custom properties set on `:root` — `--accent`, `--bg`, `--bg-panel`, `--text`, etc.
 
-## Running the full stack
-
-```bash
-# Terminal 1 — backend
-cd backend && source ../.venv/bin/activate
-uvicorn main:app --reload --port 8000
-
-# Terminal 2 — frontend dev server (proxies /api → :8000)
-cd frontend && npm run dev
-# open http://localhost:5173
-```
-
-## Build phases
-
-| Phase | Status | Scope |
-|-------|--------|-------|
-| 1 | ✅ Done | FastAPI + /search + Obsidian FTS5 indexer |
-| 2 | ✅ Done | Notion sync → /tasks, /schedule, /today; Notion indexed into FTS |
-| 3 | ✅ Done | React + TypeScript + Vite frontend: hero layout, today panel (2-col grid), search, Cmd+K palette, time-of-day theming, voice search + voice capture |
-| 4 | 🔄 Ready to deploy | Docker Compose + Caddy + HTTPS + Tailscale deploy |
-| 5 | Pending | Daily experience + personality: morning briefing, quick-capture, daily log, streaks, on-this-day, rotating greetings/motivation, weekly review |
-| 6 | Pending | Rules-based proactive nudges (no AI): class-in-1-hour, project neglect alerts, task due reminders |
-
-## Frontend (frontend/)
-Stack: React 19 + TypeScript + Vite. No UI library — all custom components.
-Font: Inter (Google Fonts, preconnect in index.html).
-
-Key files:
-- `src/lib/api.ts`         — typed fetch wrappers for every backend endpoint
-- `src/lib/theme.ts`       — injects CSS custom properties per time-of-day period
-- `src/lib/useVoice.ts`    — Web Speech API hook (search + capture modes)
-- `src/lib/useDebounce.ts` — debounce hook (250ms) to avoid search on every keystroke
-- `src/lib/speech.d.ts`    — manual type declarations for Web Speech API (not in TS stdlib)
-- `src/components/SearchBar.tsx`      — search input with voice mic button
-- `src/components/SearchResults.tsx`  — result cards with source label + highlighted snippets
-- `src/components/TodayPanel.tsx`     — two-column grid: schedule | tasks + neglected
-- `src/components/CommandPalette.tsx` — Cmd+K overlay with search + voice capture tabs
-- `src/index.css`          — all styles via CSS custom properties; no CSS-in-JS
-
-Layout:
-- Sticky topbar: logo (left), clock (right), ⌘K badge (right)
-- Hero section: large greeting h1, live date, big centered search bar, feature hint pills
-- Home view: two-column today grid (schedule | tasks)
-- Search view: replaces today grid when query is non-empty
-- CommandPalette: frosted-glass overlay, Search tab + Capture tab
-
-Time-of-day periods: dawn (5–8), morning (8–12), afternoon (12–17), evening (17–21), night (21–5).
-Each period sets --accent / --accent-dim / --accent-glow / --bg / --bg-panel / --bg-card /
---bg-hover / --text / --text-sub / --text-dim / --border / --border-card on :root.
-
-Vite dev proxy: `/api/*` → `http://localhost:8000/*` (no CORS issues in dev).
-
-Task card design: colored left stripe (3px) using priority color. Badges show
-priority, status, and relative due date ("today", "tomorrow", "2d overdue").
-Schedule event cards colored by type: Class=accent, Study=purple, Personal=green, Meeting=amber.
+## Security (repo is PUBLIC)
+- `.gitignore` excludes: vault, data/, *.db, .env, captures/, .venv/, node_modules/
+- All secrets in `.env` — never commit
+- No server IPs, hostnames, usernames, or Tailscale details in committed files
+- Tailscale-only access — no public ports
+- Docker runs as root (home lab only — Tailscale is the security perimeter)
 
 ## Voice capture safety
-POST /capture in main.py only ever creates new timestamped files in vault/captures/.
-It will never edit, overwrite, or delete existing notes.
-The captures/ directory is gitignored.
-
-## Phase 3 — frontend notes
-- Command palette (Cmd+K) is required — keyboard-first navigation
-- Time-of-day theming (morning/afternoon/evening color shifts)
-- Voice search: tap mic → Web Speech API → fills search bar (transient, no storage)
-- Voice capture: speak → transcribe → save timestamped .md to vault/captures/ →
-  auto-tagged #voice-capture → flows into indexer. NEVER edits/overwrites/deletes
-  existing notes. Only creates new files.
-
-## Phase 5 — personality config
-- Greeting/motivation lines live in an editable config file (not hardcoded)
-- "Sass level" setting to dial roasts up or down
-- Context-aware: dry/funny when day is packed, gentle when empty, light roast
-  when a project is neglected (e.g. "VoidWalker misses you. It's been 7 days.")
-- Motivation mixes real quotes with user's own past wins from daily log
+`POST /capture` only ever CREATES new timestamped files in `vault/captures/`.
+Never edits, overwrites, or deletes existing notes. `captures/` is gitignored.
