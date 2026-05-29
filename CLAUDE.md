@@ -25,30 +25,30 @@ occasionally funny, quietly motivating, and looks beautiful.
 
 | Field        | Value                          |
 |--------------|--------------------------------|
-| SSH alias    | `amrad`                        |
-| Tailscale IP | `100.104.67.55`                |
-| User         | `abanit`                       |
+| SSH alias    | `<your-server-alias>`          |
+| Tailscale IP | `<your-tailscale-ip>`          |
+| User         | `<your-server-user>`           |
 | OS           | Linux                          |
-| Tailscale    | Connected (relay: blr)         |
+| Tailscale    | Connected                      |
 
 SSH config (`~/.ssh/config`):
 ```
-Host amrad
-    HostName 100.104.67.55
-    User abanit
+Host <your-server-alias>
+    HostName <your-tailscale-ip>
+    User <your-server-user>
 ```
 
-**Deployment status:** Phase 4 config is written and ready — waiting for `amrad`
+**Deployment status:** Phase 4 config is written and ready — waiting for server
 to come online. All Docker/Caddy files are in the repo root.
 
 **First-time deploy checklist (run once when server is online):**
-1. `ssh amrad` — confirm Docker is installed (`docker --version`)
+1. `ssh <your-server-alias>` — confirm Docker is installed (`docker --version`)
 2. On server: `mkdir -p ~/kairos && cp .env.example ~/kairos/.env` then fill in real values
 3. On server: confirm vault path (`ls ~/vault` or wherever it lives)
 4. On Mac: `./deploy.sh` — builds frontend, rsyncs to server, runs docker compose up
 5. On server: set up cron — `crontab -e` and add the line from `scripts/server_cron.sh`
 6. On Mac: `caddy trust` on each device to trust Caddy's internal CA (for HTTPS)
-7. Open `https://100.104.67.55` from any Tailscale device
+7. Open `https://<your-tailscale-ip>` from any Tailscale device
 
 **Current dev setup (Mac only):**
 - Backend: `localhost:8000`
