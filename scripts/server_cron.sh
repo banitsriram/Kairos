@@ -4,14 +4,9 @@
 #   */15 * * * * /home/abanit/kairos/scripts/server_cron.sh >> /home/abanit/kairos/logs/cron.log 2>&1
 set -euo pipefail
 
-VAULT_PATH="${VAULT_PATH:-/home/abanit/vault}"
+echo "[$(date -Iseconds)] Starting index..."
 
-echo "[$(date -Iseconds)] Starting sync..."
-
-# Pull latest vault from git
-cd "$VAULT_PATH"
-git pull --ff-only origin main
-
+# Vault is kept in sync by Syncthing — no git pull needed.
 # Re-index vault + Notion inside the running backend container
 cd /home/abanit/kairos
 docker compose exec -T backend python indexer.py
