@@ -3,6 +3,7 @@ export interface SearchResult {
   title: string
   snippet: string
   score: number
+  source: string
 }
 
 export interface Task {
@@ -66,8 +67,10 @@ async function get<T>(path: string): Promise<T> {
   return res.json()
 }
 
-export async function search(q: string): Promise<{ results: SearchResult[] }> {
-  return get(`/search?q=${encodeURIComponent(q)}`)
+export async function search(q: string, source?: string): Promise<{ results: SearchResult[] }> {
+  const params = new URLSearchParams({ q })
+  if (source) params.set('source', source)
+  return get(`/search?${params.toString()}`)
 }
 
 export async function fetchToday(): Promise<TodayData> {

@@ -743,3 +743,24 @@ h1, h2, h3 { margin: 0; }
   font-style: italic;
   color: var(--text-sub);
 }
+
+.palette-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+.palette-filter {
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--bg-panel);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.palette-filter--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}

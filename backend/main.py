@@ -21,6 +21,7 @@ _PERSONALITY_CONFIG = os.getenv(
 
 from db import get_connection, init_db  # noqa: E402
 from notion import get_schedule, get_tasks, get_today  # noqa: E402
+from search import search_index  # noqa: E402
 
 app = FastAPI(title="Kairos API", version="0.1.0")
 
@@ -44,42 +45,21 @@ def health():
 
 
 @app.get("/search")
-def search(q: str = Query(..., min_length=1, description="Search query")):
+def search(
+    q: str = Query(..., min_length=1, description="Search query"),
+    source: Optional[str] = Query(
+        None, description="Filter by source: note|notion|github|conversation"
+    ),
+):
     conn = get_connection()
     try:
-        rows = conn.execute(
-            """
-            SELECT
-                path,
-                title,
-                snippet(notes_fts, 2, '<mark>', '</mark>', '…', 24) AS snippet,
-                bm25(notes_fts) AS score
-            FROM notes_fts
-            WHERE notes_fts MATCH ?
-            ORDER BY score
-            LIMIT 20
-            """,
-            (q,),
-        ).fetchall()
+        results = search_index(conn, q, source=source)
     except sqlite3.OperationalError as e:
         raise HTTPException(status_code=400, detail=f"Invalid query syntax: {e}")
     finally:
         conn.close()
 
-    return {
-        "query": q,
-        "total": len(rows),
-        "results": [
-            {
-                "path": r["path"],
-                "title": r["title"],
-                "snippet": r["snippet"],
-                # bm25() is negative (more negative = better). Flip so higher = more relevant.
-                "score": round(-r["score"], 4),
-            }
-            for r in rows
-        ],
-    }
+    return {"query": q, "source": source, "total": len(results), "results": results}
 
 
 @app.get("/tasks")
