@@ -8,9 +8,13 @@ services:
       - db_data:/data
       # Obsidian vault — read-only mount from the host
       - ${VAULT_PATH}:/vault:ro
+      # Claude session summaries — read-only. Optional: defaults to /dev/null
+      # (not a dir) so the conversations indexer skips gracefully when unset.
+      - ${MEMORY_SESSIONS_HOST:-/dev/null}:/memory/sessions:ro
     environment:
       DB_PATH: /data/brain.db
       VAULT_PATH: /vault
+      MEMORY_SESSIONS_PATH: /memory/sessions
     networks:
       - internal
     healthcheck:
