@@ -40,3 +40,34 @@ def test_index_github_creates_all_row_types(db, monkeypatch):
 
     commit = db.execute("SELECT title FROM notes_fts WHERE path='gh/demo/commit/abc123'").fetchone()
     assert commit["title"] == "feat: first commit"
+
+
+def test_index_github_survives_list_repos_failure(db, monkeypatch):
+    # e.g. missing/invalid GITHUB_TOKEN → 401. Must not raise (would break the cron).
+    def boom():
+        raise RuntimeError("401 Unauthorized")
+    monkeypatch.setattr(github, "list_repos", boom)
+    assert github_indexer.index_github(conn=db) == 0
+
+
+def test_index_github_skips_one_bad_repo_indexes_rest(db, monkeypatch):
+    monkeypatch.setattr(github, "list_repos", lambda: [
+        {"full_name": "u/bad", "name": "bad", "description": "", "default_branch": "main",
+         "topics": [], "language": "Python"},
+        {"full_name": "u/good", "name": "good", "description": "ok", "default_branch": "main",
+         "topics": [], "language": "Python"},
+    ])
+
+    def get_readme(full):
+        if full == "u/bad":
+            raise RuntimeError("boom")
+        return "readme"
+    monkeypatch.setattr(github, "get_readme", get_readme)
+    monkeypatch.setattr(github, "list_commits", lambda fn, limit=100: [])
+    monkeypatch.setattr(github, "list_text_files", lambda fn, branch: [])
+    monkeypatch.setattr(github, "list_issues", lambda fn: [])
+
+    n = github_indexer.index_github(conn=db)
+    assert n == 1
+    paths = {r["path"] for r in db.execute("SELECT path FROM notes_fts").fetchall()}
+    assert paths == {"gh/good"}
