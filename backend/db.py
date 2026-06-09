@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -51,3 +52,35 @@ def init_db() -> None:
     """)
     conn.commit()
     conn.close()
+
+
+SOURCE_PREFIXES = {
+    "notion": "notion/",
+    "github": "gh/",
+    "conversation": "conv/",
+}
+
+
+def source_of(path: str) -> str:
+    """Classify a row by its path prefix. Bare paths are vault notes."""
+    for source, prefix in SOURCE_PREFIXES.items():
+        if path.startswith(prefix):
+            return source
+    return "note"
+
+
+def upsert_fts(conn, path: str, title: str, body: str, tags: str) -> None:
+    """Insert-or-replace a row in notes_fts and track it in notes_meta.
+    FTS5 has no UPDATE, so delete then insert — same pattern as the other indexers."""
+    now = time.time()
+    conn.execute("DELETE FROM notes_fts WHERE path = ?", (path,))
+    conn.execute(
+        "INSERT INTO notes_fts (path, title, body, tags) VALUES (?, ?, ?, ?)",
+        (path, title, body, tags),
+    )
+    conn.execute(
+        """INSERT INTO notes_meta (path, mtime, indexed_at) VALUES (?, ?, ?)
+           ON CONFLICT(path) DO UPDATE
+           SET mtime = excluded.mtime, indexed_at = excluded.indexed_at""",
+        (path, now, now),
+    )
