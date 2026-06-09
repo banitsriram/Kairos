@@ -2,13 +2,15 @@
 # deploy.sh — build and ship Kairos to the home lab server.
 # Run from the project root: ./deploy.sh
 #
-# Set SERVER and REMOTE_DIR to match your setup:
+# Set SERVER and REMOTE_DIR to match your setup, either by editing the defaults
+# below or by exporting them at call time (keeps real values out of git):
+#   KAIROS_SERVER=myserver KAIROS_REMOTE_DIR=/home/me/kairos ./deploy.sh
 #   SERVER     — SSH alias from ~/.ssh/config (e.g. "myserver")
 #   REMOTE_DIR — absolute path on the server (e.g. "/home/<user>/kairos")
 set -euo pipefail
 
-SERVER="<your-server-alias>"
-REMOTE_DIR="/home/<your-user>/kairos"
+SERVER="${KAIROS_SERVER:-<your-server-alias>}"
+REMOTE_DIR="${KAIROS_REMOTE_DIR:-/home/<your-user>/kairos}"
 
 echo "==> Building frontend..."
 cd frontend
@@ -29,9 +31,9 @@ rsync -avz --progress \
   . "$SERVER:$REMOTE_DIR"
 
 echo "==> Deploying on server..."
-ssh "$SERVER" bash <<'REMOTE'
+ssh "$SERVER" "REMOTE_DIR='$REMOTE_DIR' bash -s" <<'REMOTE'
 set -euo pipefail
-cd /home/<your-user>/kairos
+cd "$REMOTE_DIR"
 
 # First deploy: create .env from example if it doesn't exist yet
 if [ ! -f .env ]; then
@@ -43,10 +45,13 @@ fi
 # Build image first so indexers run on the latest code
 docker compose build backend
 
-# Re-index vault before bringing backend up
-# (idempotent — skips unchanged files)
+# Re-index all sources before bringing backend up
+# (idempotent — skips unchanged files; github/conversations degrade gracefully
+#  if GITHUB_TOKEN / MEMORY_SESSIONS_PATH aren't configured yet)
 docker compose run --rm backend python indexer.py
 docker compose run --rm backend python notion_indexer.py
+docker compose run --rm backend python github_indexer.py
+docker compose run --rm backend python conversations_indexer.py
 
 # Bring up (or restart if already running)
 docker compose up -d
