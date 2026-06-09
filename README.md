@@ -1,4 +1,15 @@
-# Kairos ⏳
+<p align="center">
+  <img src="frontend/src/assets/hero.png" width="130" alt="Kairos logo">
+</p>
+
+<h1 align="center">Kairos ⏳</h1>
+
+<p align="center">
+  A self-hosted personal "second brain" life dashboard — your Obsidian notes,<br>
+  Notion schedule, and quick captures in one fast, beautiful page.
+</p>
+
+---
 
 A **self-hosted personal "second brain" life dashboard** — your Obsidian notes, Notion schedule, and quick captures unified into one fast, beautiful page that feels alive, occasionally funny, and quietly motivating.
 
