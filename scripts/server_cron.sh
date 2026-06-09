@@ -12,5 +12,7 @@ echo "[$(date -Iseconds)] Starting index..."
 cd /home/<your-user>/kairos
 docker compose exec -T backend python indexer.py
 docker compose exec -T backend python notion_indexer.py
+docker compose exec -T backend python github_indexer.py
+docker compose exec -T backend python conversations_indexer.py
 
 echo "[$(date -Iseconds)] Index complete."
