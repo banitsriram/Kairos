@@ -9,12 +9,16 @@ interface Props {
 function sourceLabel(path: string): string {
   if (path.startsWith('notion/tasks'))    return 'Task'
   if (path.startsWith('notion/schedule')) return 'Event'
+  if (path.startsWith('gh/'))             return 'GitHub'
+  if (path.startsWith('conv/'))           return 'Conversation'
   return 'Note'
 }
 
 function sourceIcon(path: string): string {
   if (path.startsWith('notion/tasks'))    return '✓'
   if (path.startsWith('notion/schedule')) return '◷'
+  if (path.startsWith('gh/'))             return '⎇'
+  if (path.startsWith('conv/'))           return '💬'
   return '◈'
 }
 

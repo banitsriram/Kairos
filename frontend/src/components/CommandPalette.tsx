@@ -30,6 +30,7 @@ export function CommandPalette({ open, onClose }: Props) {
   const [loading, setLoading]   = useState(false)
   const [captureText, setCaptureText] = useState('')
   const [captureStatus, setCaptureStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [source, setSource] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null)
   const debouncedQuery = useDebounce(query, 250)
 
@@ -40,6 +41,7 @@ export function CommandPalette({ open, onClose }: Props) {
       setResults([])
       setCaptureText('')
       setCaptureStatus('idle')
+      setSource(null)
       setTimeout(() => inputRef.current?.focus(), 30)
     }
   }, [open])
@@ -51,11 +53,11 @@ export function CommandPalette({ open, onClose }: Props) {
       return
     }
     setLoading(true)
-    search(debouncedQuery)
+    search(debouncedQuery, source ?? undefined)
       .then((r) => setResults(r.results))
       .catch(() => setResults([]))
       .finally(() => setLoading(false))
-  }, [debouncedQuery, mode])
+  }, [debouncedQuery, mode, source])
 
   // Close on Escape
   useEffect(() => {
@@ -106,13 +108,30 @@ export function CommandPalette({ open, onClose }: Props) {
 
         {mode === 'search' && (
           <>
+            <div className="palette-filters">
+              {([
+                ['All', null],
+                ['Notes', 'note'],
+                ['Notion', 'notion'],
+                ['GitHub', 'github'],
+                ['Conversations', 'conversation'],
+              ] as [string, string | null][]).map(([label, value]) => (
+                <button
+                  key={label}
+                  className={`palette-filter ${source === value ? 'palette-filter--active' : ''}`}
+                  onClick={() => setSource(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <input
               ref={inputRef as React.RefObject<HTMLInputElement>}
               className="palette-input"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search vault + Notion…"
+              placeholder="Search notes, Notion, GitHub, conversations…"
               spellCheck={false}
               autoComplete="off"
             />
