@@ -48,10 +48,12 @@ docker compose build backend
 # Re-index all sources before bringing backend up
 # (idempotent — skips unchanged files; github/conversations degrade gracefully
 #  if GITHUB_TOKEN / MEMORY_SESSIONS_PATH aren't configured yet)
-docker compose run --rm backend python indexer.py
-docker compose run --rm backend python notion_indexer.py
-docker compose run --rm backend python github_indexer.py
-docker compose run --rm backend python conversations_indexer.py
+# NOTE: `< /dev/null` is required — `docker compose run` attaches stdin, and
+# without it the first run would swallow the rest of this heredoc (skipping `up -d`).
+docker compose run --rm -T backend python indexer.py </dev/null
+docker compose run --rm -T backend python notion_indexer.py </dev/null
+docker compose run --rm -T backend python github_indexer.py </dev/null
+docker compose run --rm -T backend python conversations_indexer.py </dev/null
 
 # Bring up (or restart if already running)
 docker compose up -d
